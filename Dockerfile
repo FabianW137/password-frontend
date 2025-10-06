@@ -8,7 +8,7 @@ FROM nginx:1.27-alpine
 COPY index.html /usr/share/nginx/html/index.html
 COPY scripts/   /usr/share/nginx/html/scripts/
 COPY styles/    /usr/share/nginx/html/styles/
-COPY assets/    /usr/share/nginx/html/assets/
+
 # Optional: README/render.yaml/etc. wenn du sie ausliefern willst
 # COPY render.yaml /usr/share/nginx/html/
 
