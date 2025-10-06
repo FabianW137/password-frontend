@@ -1,26 +1,16 @@
 # syntax=docker/dockerfile:1
-
-# Leichtgewichtiger Webserver für statische SPAs
 FROM nginx:1.27-alpine
 
-# Deine App-Dateien ins Webroot kopieren
-# (Passe die COPY-Zeilen an, falls deine Ordnerstruktur anders ist)
+# Statische Dateien ins Webroot kopieren
 COPY index.html /usr/share/nginx/html/index.html
-COPY scripts/   /usr/share/nginx/html/scripts/
-COPY styles/    /usr/share/nginx/html/styles/
+COPY app.js     /usr/share/nginx/html/app.js
+COPY styles.css /usr/share/nginx/html/styles.css
 
-# Optional: README/render.yaml/etc. wenn du sie ausliefern willst
-# COPY render.yaml /usr/share/nginx/html/
+# Nginx-Template: wird beim Start per envsubst zu /etc/nginx/conf.d/default.conf gerendert
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-# Kleine Healthcheck-Datei
-RUN echo "ok" > /usr/share/nginx/html/health
+# (Optional) lokal testen auf 8080; Render überschreibt das mit $PORT
+EXPOSE 8080
 
-# Standard-Nginx-Config entfernen und unsere eigene hinzufügen
-RUN rm -f /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Render erwartet, dass der Container auf Port 10000 lauscht
-EXPOSE 10000
-
-# Nginx im Vordergrund starten
-CMD ["nginx", "-g", "daemon off;"]
+# Kein eigenes CMD nötig – der Nginx-Entrypoint rendert Templates automatisch
+# und startet: nginx -g 'daemon off;'
