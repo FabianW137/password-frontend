@@ -1,9 +1,15 @@
-# ---- Static SPA via Nginx ----
-FROM nginx:alpine
+FROM nginx:1.27-alpine
 
-# Render sets PORT=10000 by default; make nginx listen on it.
-ENV PORT=10000
-EXPOSE 10000
+# Template: envsubst wandelt das zur Laufzeit in /etc/nginx/conf.d/default.conf um
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+# Statische Dateien
+COPY index.html /usr/share/nginx/html/index.html
+COPY styles.css /usr/share/nginx/html/styles.css
+COPY app.js     /usr/share/nginx/html/app.js
+
+EXPOSE 8080
+
 
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
