@@ -1,6 +1,6 @@
 /* global $, localStorage */
 const state = {
-  baseUrl: localStorage.getItem('baseUrl') || '',
+  baseUrl: localStorage.getItem('https://password-backend-fc0k.onrender.com') || '',
   token: localStorage.getItem('jwt') || null,
   tmpToken: null,
   items: []
