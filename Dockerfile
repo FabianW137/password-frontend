@@ -1,26 +1,16 @@
-# syntax=docker/dockerfile:1
+# ---- Static SPA via Nginx ----
+FROM nginx:alpine
 
-# Leichtgewichtiger Webserver für statische SPAs
-FROM nginx:1.27-alpine
-
-# Deine App-Dateien ins Webroot kopieren
-# (Passe die COPY-Zeilen an, falls deine Ordnerstruktur anders ist)
-COPY index.html /usr/share/nginx/html/index.html
-COPY scripts/   /usr/share/nginx/html/scripts/
-COPY styles/    /usr/share/nginx/html/styles/
-COPY assets/    /usr/share/nginx/html/assets/
-# Optional: README/render.yaml/etc. wenn du sie ausliefern willst
-# COPY render.yaml /usr/share/nginx/html/
-
-# Kleine Healthcheck-Datei
-RUN echo "ok" > /usr/share/nginx/html/health
-
-# Standard-Nginx-Config entfernen und unsere eigene hinzufügen
-RUN rm -f /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Render erwartet, dass der Container auf Port 10000 lauscht
+# Render sets PORT=10000 by default; make nginx listen on it.
+ENV PORT=10000
 EXPOSE 10000
 
-# Nginx im Vordergrund starten
-CMD ["nginx", "-g", "daemon off;"]
+# Copy nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy static files
+COPY index.html /usr/share/nginx/html/index.html
+COPY styles.css /usr/share/nginx/html/styles.css
+COPY app.js /usr/share/nginx/html/app.js
+
+HEALTHCHECK CMD wget -qO- http://localhost:$PORT/ || exit 1

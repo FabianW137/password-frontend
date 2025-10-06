@@ -1,167 +1,158 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Password Vault</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: { brand: { DEFAULT: '#4f46e5', 700:'#4338ca' } }
-        }
-      }
-    }
-  </script>
-  <link rel="icon" href="assets/lock.svg" />
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <link rel="stylesheet" href="styles/styles.css" />
+  <meta name="description" content="Sicherer Passwort-Manager – Login mit TOTP, Tresor mit Suchen, Hinzufügen, Bearbeiten, Löschen.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script defer src="app.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen">
-  <header class="sticky top-0 z-20 bg-white/70 backdrop-blur border-b border-slate-200">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-      <img src="assets/lock.svg" class="w-6 h-6" alt="Logo" />
-      <h1 class="text-lg font-semibold">Password Vault</h1>
-      <span class="grow"></span>
-      <button id="btnSettings" class="btn-secondary">Einstellungen</button>
-      <button id="btnLogin" class="btn-primary">Login</button>
-      <button id="btnLogout" class="btn-secondary hidden">Logout</button>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg aria-hidden="true" class="logo" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7v2H3a1 1 0 0 0-1 1v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-8a1 1 0 0 0-1-1h-2V9a7 7 0 0 0-7-7Zm0 2a5 5 0 0 1 5 5v2H7V9a5 5 0 0 1 5-5Zm-7 9h14v7H5v-7Z"/></svg>
+      <span>Password Vault</span>
+    </div>
+    <div class="top-actions">
+      <button id="btn-logout" class="btn ghost" title="Abmelden" hidden>Abmelden</button>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
-    <section id="intro" class="card">
-      <div class="p-6">
-        <h2 class="text-xl font-semibold mb-2">Willkommen 👋</h2>
-        <p class="text-slate-600">
-          Stelle zuerst die <strong>Backend-URL</strong> ein, dann logge dich ein (E-Mail + Passwort + TOTP).
-        </p>
+  <main class="container">
+
+    <!-- Auth Section -->
+    <section id="auth-section" class="card auth">
+      <div class="tabs" role="tablist" aria-label="Authentifizierung">
+        <button class="tab active" data-tab="login" id="tab-login" role="tab" aria-selected="true" aria-controls="panel-login">Anmelden</button>
+        <button class="tab" data-tab="register" id="tab-register" role="tab" aria-selected="false" aria-controls="panel-register">Registrieren</button>
+      </div>
+
+      <div id="panel-login" class="tab-panel active" role="tabpanel" aria-labelledby="tab-login">
+        <form id="form-login" class="grid form" autocomplete="on">
+          <label class="field">
+            <span>E-Mail</span>
+            <input type="email" id="login-email" required autocomplete="username" placeholder="du@example.com">
+          </label>
+          <label class="field">
+            <span>Passwort</span>
+            <input type="password" id="login-password" required autocomplete="current-password" placeholder="••••••••">
+          </label>
+          <button class="btn primary" type="submit">Anmelden</button>
+        </form>
+      </div>
+
+      <div id="panel-register" class="tab-panel" role="tabpanel" aria-labelledby="tab-register" hidden>
+        <form id="form-register" class="grid form" autocomplete="on">
+          <label class="field">
+            <span>E-Mail</span>
+            <input type="email" id="reg-email" required placeholder="du@example.com">
+          </label>
+          <label class="field">
+            <span>Passwort</span>
+            <input type="password" id="reg-password" required placeholder="Mind. 8 Zeichen">
+          </label>
+          <label class="field">
+            <span>Passwort wiederholen</span>
+            <input type="password" id="reg-password2" required placeholder="Wiederholen">
+          </label>
+          <button class="btn primary" type="submit">Konto erstellen</button>
+          <p class="hint">Nach der Registrierung bitte mit Ihren Zugangsdaten anmelden und TOTP-Code eingeben.</p>
+        </form>
       </div>
     </section>
 
-    <section id="vaultSection" class="card hidden">
-      <div class="p-4 flex items-center gap-3">
-        <h2 class="text-lg font-semibold">Deine Einträge</h2>
-        <span class="grow"></span>
-        <input id="search" type="search" placeholder="Suchen…" class="input w-64" />
-        <button id="btnAdd" class="btn-primary">Neu</button>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead class="bg-slate-100 text-slate-700">
-            <tr>
-              <th class="th">Titel</th>
-              <th class="th">Username</th>
-              <th class="th">Passwort</th>
-              <th class="th">URL</th>
-              <th class="th">Notizen</th>
-              <th class="th w-48">Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="vaultTbody" class="divide-y divide-slate-200 bg-white"></tbody>
-        </table>
-      </div>
+    <!-- Vault Section (visible after login) -->
+    <section id="vault-section" class="vault-layout" hidden>
+      <aside class="side">
+        <div class="card">
+          <h2>Neuer Eintrag</h2>
+          <form id="form-create" class="grid form">
+            <label class="field"><span>Titel</span><input id="new-title" required placeholder="z.B. GitHub"></label>
+            <label class="field"><span>Benutzername</span><input id="new-username" required placeholder="user123"></label>
+            <label class="field"><span>Passwort</span><div class="password-wrap"><input id="new-password" type="password" required placeholder="••••••••"><button type="button" class="icon-btn" data-action="gen-pass" title="Passwort generieren">🎲</button></div></label>
+            <label class="field"><span>URL</span><input id="new-url" type="url" placeholder="https://..."></label>
+            <label class="field"><span>Notizen</span><textarea id="new-notes" rows="3" placeholder="optional"></textarea></label>
+            <button class="btn primary" type="submit">Speichern</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Suche &amp; Filter</h2>
+          <input id="search" class="search" placeholder="Suchen… (Titel, User, URL)">
+        </div>
+      </aside>
+
+      <section class="content">
+        <div class="toolbar card">
+          <div class="left">
+            <h2>Meine Passwörter</h2>
+          </div>
+          <div class="right smallmuted">
+            Backend: <code>https://password-backend-fc0k.onrender.com</code>
+          </div>
+        </div>
+
+        <div id="vault-list" class="list"></div>
+
+        <template id="tpl-item">
+          <div class="item card" data-id="">
+            <div class="row">
+              <div class="grow">
+                <div class="title"></div>
+                <div class="muted meta"></div>
+              </div>
+              <div class="actions">
+                <button class="icon-btn" data-action="copy-user" title="Benutzername kopieren">👤</button>
+                <button class="icon-btn" data-action="toggle-pass" title="Passwort anzeigen/verbergen">👁️</button>
+                <button class="icon-btn" data-action="copy-pass" title="Passwort kopieren">🔑</button>
+                <button class="icon-btn" data-action="open-url" title="Seite öffnen">🌐</button>
+                <button class="icon-btn danger" data-action="delete" title="Löschen">🗑️</button>
+              </div>
+            </div>
+            <div class="grid form compact edit-fields" hidden>
+              <label class="field"><span>Titel</span><input class="e-title"></label>
+              <label class="field"><span>Benutzername</span><input class="e-username"></label>
+              <label class="field"><span>Passwort</span><div class="password-wrap"><input class="e-password" type="password"><button type="button" class="icon-btn" data-action="gen-pass-row" title="Passwort generieren">🎲</button></div></label>
+              <label class="field"><span>URL</span><input class="e-url" type="url"></label>
+              <label class="field"><span>Notizen</span><textarea class="e-notes" rows="2"></textarea></label>
+              <div class="edit-actions">
+                <button class="btn" data-action="cancel-edit">Abbrechen</button>
+                <button class="btn primary" data-action="save-edit">Speichern</button>
+              </div>
+            </div>
+            <div class="details">
+              <div class="kv"><span class="k">Benutzername</span><span class="v user"></span></div>
+              <div class="kv"><span class="k">Passwort</span><span class="v pass masked" data-mask="••••••••"></span></div>
+              <div class="kv"><span class="k">URL</span><span class="v url"></span></div>
+              <div class="kv"><span class="k">Notizen</span><span class="v notes"></span></div>
+            </div>
+          </div>
+        </template>
+      </section>
     </section>
   </main>
 
-  <footer class="py-8 text-center text-xs text-slate-500">
-    <p>Made for Render demo · jQuery + Tailwind</p>
-  </footer>
+  <!-- TOTP Modal -->
+  <div id="totp-modal" class="modal" aria-hidden="true" hidden>
+    <div class="modal-box card">
+      <h3>Zwei‑Faktor-Code</h3>
+      <p>Bitte geben Sie Ihren 6‑stelligen TOTP‑Code aus der Authenticator‑App ein.</p>
+      <form id="form-totp" class="row form-inline">
+        <input id="totp-code" inputmode="numeric" pattern="\d*" minlength="6" maxlength="6" placeholder="123456" required>
+        <button class="btn primary" type="submit">Bestätigen</button>
+      </form>
+      <button class="btn ghost mt" data-action="cancel-totp">Abbrechen</button>
+    </div>
+  </div>
 
-  <dialog id="dlgSettings" class="modal">
-    <form method="dialog" class="modal-box max-w-xl">
-      <h3 class="text-lg font-semibold mb-3">Einstellungen</h3>
-      <label class="label">Backend-URL</label>
-      <input id="inpBaseUrl" class="input w-full" placeholder="https://password-backend…/api" />
-      <p class="mt-2 text-xs text-slate-500">Wird in <code>localStorage</code> gespeichert.</p>
-      <div class="modal-actions">
-        <button class="btn-secondary">Abbrechen</button>
-        <button id="saveSettings" class="btn-primary" value="default">Speichern</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="dlgLogin" class="modal">
-    <form method="dialog" class="modal-box max-w-md">
-      <h3 class="text-lg font-semibold mb-4">Login</h3>
-      <label class="label">E-Mail</label>
-      <input id="loginEmail" type="email" class="input w-full" required />
-      <label class="label mt-3">Passwort</label>
-      <input id="loginPassword" type="password" class="input w-full" required />
-      <div class="flex items-center justify-between mt-4">
-        <button id="openRegister" class="text-brand-700 hover:underline" type="button">Jetzt registrieren</button>
-        <div>
-          <button class="btn-secondary mr-2">Schließen</button>
-          <button id="doLogin" class="btn-primary" value="default">Login</button>
-        </div>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="dlgTotp" class="modal">
-    <form method="dialog" class="modal-box max-w-md">
-      <h3 class="text-lg font-semibold mb-4">TOTP bestätigen</h3>
-      <input id="totpCode" class="input w-full" placeholder="123456" />
-      <div class="modal-actions">
-        <button class="btn-secondary">Abbrechen</button>
-        <button id="doTotp" class="btn-primary" value="default">Bestätigen</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="dlgRegister" class="modal">
-    <form method="dialog" class="modal-box max-w-md">
-      <h3 class="text-lg font-semibold mb-4">Registrieren</h3>
-      <label class="label">E-Mail</label>
-      <input id="regEmail" type="email" class="input w-full" required />
-      <label class="label mt-3">Passwort</label>
-      <input id="regPassword" type="password" class="input w-full" required />
-      <div class="modal-actions">
-        <button class="btn-secondary">Abbrechen</button>
-        <button id="doRegister" class="btn-primary" value="default">Anlegen</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="dlgEdit" class="modal">
-    <form method="dialog" class="modal-box max-w-2xl">
-      <h3 class="text-lg font-semibold mb-4"><span id="editTitle">Eintrag</span></h3>
-      <input type="hidden" id="itemId" />
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="label">Titel</label>
-          <input id="itemTitle" class="input w-full" />
-        </div>
-        <div>
-          <label class="label">Username</label>
-          <input id="itemUsername" class="input w-full" />
-        </div>
-        <div>
-          <label class="label">Passwort</label>
-          <div class="flex gap-2">
-            <input id="itemPassword" type="password" class="input w-full" />
-            <button type="button" id="togglePw" class="btn-secondary">👁</button>
-          </div>
-        </div>
-        <div>
-          <label class="label">URL</label>
-          <input id="itemUrl" class="input w-full" />
-        </div>
-        <div class="md:col-span-2">
-          <label class="label">Notizen</label>
-          <textarea id="itemNotes" rows="3" class="input w-full"></textarea>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-secondary">Abbrechen</button>
-        <button id="saveItem" class="btn-primary" value="default">Speichern</button>
-      </div>
-    </form>
-  </dialog>
-
-  <div id="toast" class="fixed bottom-4 right-4 hidden"></div>
-
-  <script src="scripts/app.js"></script>
+  <!-- Toasts -->
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
+  
+  <noscript>Diese Anwendung benötigt JavaScript.</noscript>
 </body>
 </html>

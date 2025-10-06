@@ -1,5 +1,0 @@
-services:
-- type: static
-  name: password-spa
-  env: static
-  staticPublishPath: .
