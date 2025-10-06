@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Password Vault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { brand: { DEFAULT: '#4f46e5', 700:'#4338ca' } }
+        }
+      }
+    }
+  </script>
+  <link rel="icon" href="assets/lock.svg" />
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <link rel="stylesheet" href="styles/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+  <header class="sticky top-0 z-20 bg-white/70 backdrop-blur border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+      <img src="assets/lock.svg" class="w-6 h-6" alt="Logo" />
+      <h1 class="text-lg font-semibold">Password Vault</h1>
+      <span class="grow"></span>
+      <button id="btnSettings" class="btn-secondary">Einstellungen</button>
+      <button id="btnLogin" class="btn-primary">Login</button>
+      <button id="btnLogout" class="btn-secondary hidden">Logout</button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <section id="intro" class="card">
+      <div class="p-6">
+        <h2 class="text-xl font-semibold mb-2">Willkommen 👋</h2>
+        <p class="text-slate-600">
+          Stelle zuerst die <strong>Backend-URL</strong> ein, dann logge dich ein (E-Mail + Passwort + TOTP).
+        </p>
+      </div>
+    </section>
+
+    <section id="vaultSection" class="card hidden">
+      <div class="p-4 flex items-center gap-3">
+        <h2 class="text-lg font-semibold">Deine Einträge</h2>
+        <span class="grow"></span>
+        <input id="search" type="search" placeholder="Suchen…" class="input w-64" />
+        <button id="btnAdd" class="btn-primary">Neu</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-100 text-slate-700">
+            <tr>
+              <th class="th">Titel</th>
+              <th class="th">Username</th>
+              <th class="th">Passwort</th>
+              <th class="th">URL</th>
+              <th class="th">Notizen</th>
+              <th class="th w-48">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="vaultTbody" class="divide-y divide-slate-200 bg-white"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="py-8 text-center text-xs text-slate-500">
+    <p>Made for Render demo · jQuery + Tailwind</p>
+  </footer>
+
+  <dialog id="dlgSettings" class="modal">
+    <form method="dialog" class="modal-box max-w-xl">
+      <h3 class="text-lg font-semibold mb-3">Einstellungen</h3>
+      <label class="label">Backend-URL</label>
+      <input id="inpBaseUrl" class="input w-full" placeholder="https://password-backend…/api" />
+      <p class="mt-2 text-xs text-slate-500">Wird in <code>localStorage</code> gespeichert.</p>
+      <div class="modal-actions">
+        <button class="btn-secondary">Abbrechen</button>
+        <button id="saveSettings" class="btn-primary" value="default">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgLogin" class="modal">
+    <form method="dialog" class="modal-box max-w-md">
+      <h3 class="text-lg font-semibold mb-4">Login</h3>
+      <label class="label">E-Mail</label>
+      <input id="loginEmail" type="email" class="input w-full" required />
+      <label class="label mt-3">Passwort</label>
+      <input id="loginPassword" type="password" class="input w-full" required />
+      <div class="flex items-center justify-between mt-4">
+        <button id="openRegister" class="text-brand-700 hover:underline" type="button">Jetzt registrieren</button>
+        <div>
+          <button class="btn-secondary mr-2">Schließen</button>
+          <button id="doLogin" class="btn-primary" value="default">Login</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgTotp" class="modal">
+    <form method="dialog" class="modal-box max-w-md">
+      <h3 class="text-lg font-semibold mb-4">TOTP bestätigen</h3>
+      <input id="totpCode" class="input w-full" placeholder="123456" />
+      <div class="modal-actions">
+        <button class="btn-secondary">Abbrechen</button>
+        <button id="doTotp" class="btn-primary" value="default">Bestätigen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgRegister" class="modal">
+    <form method="dialog" class="modal-box max-w-md">
+      <h3 class="text-lg font-semibold mb-4">Registrieren</h3>
+      <label class="label">E-Mail</label>
+      <input id="regEmail" type="email" class="input w-full" required />
+      <label class="label mt-3">Passwort</label>
+      <input id="regPassword" type="password" class="input w-full" required />
+      <div class="modal-actions">
+        <button class="btn-secondary">Abbrechen</button>
+        <button id="doRegister" class="btn-primary" value="default">Anlegen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlgEdit" class="modal">
+    <form method="dialog" class="modal-box max-w-2xl">
+      <h3 class="text-lg font-semibold mb-4"><span id="editTitle">Eintrag</span></h3>
+      <input type="hidden" id="itemId" />
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="label">Titel</label>
+          <input id="itemTitle" class="input w-full" />
+        </div>
+        <div>
+          <label class="label">Username</label>
+          <input id="itemUsername" class="input w-full" />
+        </div>
+        <div>
+          <label class="label">Passwort</label>
+          <div class="flex gap-2">
+            <input id="itemPassword" type="password" class="input w-full" />
+            <button type="button" id="togglePw" class="btn-secondary">👁</button>
+          </div>
+        </div>
+        <div>
+          <label class="label">URL</label>
+          <input id="itemUrl" class="input w-full" />
+        </div>
+        <div class="md:col-span-2">
+          <label class="label">Notizen</label>
+          <textarea id="itemNotes" rows="3" class="input w-full"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary">Abbrechen</button>
+        <button id="saveItem" class="btn-primary" value="default">Speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="fixed bottom-4 right-4 hidden"></div>
+
+  <script src="scripts/app.js"></script>
+</body>
+</html>
